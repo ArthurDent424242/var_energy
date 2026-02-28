@@ -21,34 +21,15 @@ interface EnergyChartProps {
     color?: string;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const CustomTooltip = ({ active, payload, color }: any) => {
-    if (active && payload && payload.length) {
-        const dataPoint = payload[0].payload;
-        return (
-            <div className="card" style={{ padding: '0.75rem', minWidth: '150px' }}>
-                <p style={{ fontWeight: 600, margin: 0, color: 'var(--text-main)', fontSize: '0.875rem' }}>
-                    {dataPoint.dateName} - {dataPoint.displayTime}
-                </p>
-                <div style={{ margin: '0.5rem 0 0', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                    <span style={{ color: color, fontWeight: 600 }}>
-                        {dataPoint.price} Cent / kWh
-                    </span>
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-                        {dataPoint.priceEuro} € / kWh
-                    </span>
-                </div>
-            </div>
-        );
-    }
-    return null;
-};
-
 export const EnergyChart: React.FC<EnergyChartProps> = ({ data, color = 'var(--primary)' }) => {
+    if (!data || data.length === 0) {
+        return <div className="loading-container">No data available</div>;
+    }
+
     // Format data for Recharts
     const chartData = useMemo(() => {
         // Generate full 24h timeline to pad missing data points at the end of the day
-        if (!data || data.length === 0) return [];
+        if (data.length === 0) return [];
 
         return data.map(d => {
             const euros = (d.valueInCents / 100).toFixed(3);
@@ -62,11 +43,27 @@ export const EnergyChart: React.FC<EnergyChartProps> = ({ data, color = 'var(--p
         });
     }, [data]);
 
-    if (!data || data.length === 0) {
-        return <div className="loading-container">No data available</div>;
-    }
-
-    // Component moved outside
+    const CustomTooltip = ({ active, payload }: any) => {
+        if (active && payload && payload.length) {
+            const dataPoint = payload[0].payload;
+            return (
+                <div className="card" style={{ padding: '0.75rem', minWidth: '150px' }}>
+                    <p style={{ fontWeight: 600, margin: 0, color: 'var(--text-main)', fontSize: '0.875rem' }}>
+                        {dataPoint.dateName} - {dataPoint.displayTime}
+                    </p>
+                    <div style={{ margin: '0.5rem 0 0', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                        <span style={{ color: color, fontWeight: 600 }}>
+                            {dataPoint.price} Cent / kWh
+                        </span>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                            {dataPoint.priceEuro} € / kWh
+                        </span>
+                    </div>
+                </div>
+            );
+        }
+        return null;
+    };
 
     return (
         <div style={{ width: '100%', height: 300 }}>
@@ -91,7 +88,7 @@ export const EnergyChart: React.FC<EnergyChartProps> = ({ data, color = 'var(--p
                         tickFormatter={(value) => `${value} ct`}
                         width={50}
                     />
-                    <Tooltip content={(props) => <CustomTooltip {...props} color={color} />} />
+                    <Tooltip content={<CustomTooltip />} />
                     <ReferenceLine y={0} stroke="var(--border-color)" />
                     <Line
                         type="stepAfter"

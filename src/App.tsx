@@ -1,9 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Header } from './components/Header';
 import { Card } from './components/Card';
 import { EnergyChart, type ChartDataPoint } from './components/EnergyChart';
 import { fetchDayAheadPrices } from './services/entsoe';
-import { fetchOctopusPrices } from './services/octopus';
 import { format, addDays, subDays } from 'date-fns';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 
@@ -12,7 +11,6 @@ function App() {
 
   const [entsoeCurrent, setEntsoeCurrent] = useState<ChartDataPoint[]>([]);
   const [entsoeDayAhead, setEntsoeDayAhead] = useState<ChartDataPoint[]>([]);
-  const [octopusCurrent, setOctopusCurrent] = useState<ChartDataPoint[]>([]);
 
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -28,10 +26,9 @@ function App() {
         // Target Date + 1 (Day Ahead)
         const dateDayAhead = addDays(selectedDate, 1);
 
-        const [entsoeDataCurrent, entsoeDataDayAhead, octopusDataCurrent] = await Promise.allSettled([
+        const [entsoeDataCurrent, entsoeDataDayAhead] = await Promise.allSettled([
           fetchDayAheadPrices(dateCurrent),
-          fetchDayAheadPrices(dateDayAhead),
-          fetchOctopusPrices(dateCurrent)
+          fetchDayAheadPrices(dateDayAhead)
         ]);
 
         if (entsoeDataCurrent.status === 'fulfilled') {
@@ -54,16 +51,6 @@ function App() {
           setEntsoeDayAhead([]);
         }
 
-        if (octopusDataCurrent.status === 'fulfilled') {
-          // Octopus is usually already in pence/cents per kWh
-          setOctopusCurrent(octopusDataCurrent.value.map(d => ({
-            timestamp: d.timestamp,
-            valueInCents: d.price_inc_vat
-          })));
-        } else {
-          setOctopusCurrent([]);
-        }
-
       } catch (err: any) {
         setError(err.message || 'Failed to fetch data');
       } finally {
@@ -73,6 +60,36 @@ function App() {
 
     loadData();
   }, [selectedDate]);
+
+  // Calculate Difference: Current minus Day-Ahead 
+  // (Note: To compare apples to apples, we match by hour. If day-ahead is cheaper, difference is positive)
+  const priceDifference = useMemo(() => {
+    if (entsoeCurrent.length === 0 || entsoeDayAhead.length === 0) return [];
+
+    return entsoeCurrent.map((currentPoint, index) => {
+      const dayAheadPoint = entsoeDayAhead[index];
+      // If the arrays align perfectly (which they usually do for 24h ENTSO-E data)
+      if (dayAheadPoint) {
+        return {
+          timestamp: currentPoint.timestamp,
+          // e.g. Current (10ct) - DayAhead(8ct) = +2ct difference
+          valueInCents: currentPoint.valueInCents - dayAheadPoint.valueInCents
+        }
+      }
+      return { timestamp: currentPoint.timestamp, valueInCents: 0 };
+    });
+  }, [entsoeCurrent, entsoeDayAhead]);
+
+  // Variable representation for German Customer Prices (Dynamic/Variable Tariff Simulation)
+  // Usually Wholesale Day-Ahead + ~18 to 20 cents for taxes, grid fees, and levies depending on region.
+  const variableCustomerPrices = useMemo(() => {
+    if (entsoeDayAhead.length === 0) return [];
+    return entsoeDayAhead.map(p => ({
+      timestamp: p.timestamp,
+      valueInCents: p.valueInCents + 18.5 // Base price + 18.5 ct/kWh estimated overhead
+    }));
+  }, [entsoeDayAhead]);
+
 
   const handlePrevDay = () => setSelectedDate(prev => subDays(prev, 1));
   const handleNextDay = () => setSelectedDate(prev => addDays(prev, 1));
@@ -133,12 +150,21 @@ function App() {
               )}
             </Card>
 
-            <Card title={<><span style={{ color: '#E53E3E' }}>●</span> Octopus Energy Prices</>}>
-              <div style={{ marginBottom: '1rem', color: 'var(--text-muted)' }}>Date: {format(selectedDate, 'dd.MM.yyyy')} | Source: Octopus Energy (Agile Tariff)</div>
-              {octopusCurrent.length > 0 ? (
-                <EnergyChart data={octopusCurrent} color="#E53E3E" />
+            <Card title={<><span style={{ color: '#E53E3E' }}>●</span> Price Difference (Current vs. Day-Ahead)</>}>
+              <div style={{ marginBottom: '1rem', color: 'var(--text-muted)' }}>Delta: Current Date Prices minus Day-Ahead Prices. Values above 0 mean Current is more expensive.</div>
+              {priceDifference.length > 0 ? (
+                <EnergyChart data={priceDifference} color="#E53E3E" />
               ) : (
-                <div className="loading-container" style={{ height: '200px' }}>No Octopus data available for this date.</div>
+                <div className="loading-container" style={{ height: '200px' }}>Waiting for both datasets to compute difference...</div>
+              )}
+            </Card>
+
+            <Card title={<><span style={{ color: '#38A169' }}>●</span> Variable Energy Prices (Dynamic Customer Tariff)</>}>
+              <div style={{ marginBottom: '1rem', color: 'var(--text-muted)' }}>Date: {format(addDays(selectedDate, 1), 'dd.MM.yyyy')} | Source: Day-Ahead + Estimated overhead (~18.5ct for taxes, grid fees)</div>
+              {variableCustomerPrices.length > 0 ? (
+                <EnergyChart data={variableCustomerPrices} color="#38A169" />
+              ) : (
+                <div className="loading-container" style={{ height: '200px' }}>Waiting for dataset to compute dynamic prices...</div>
               )}
             </Card>
           </div>

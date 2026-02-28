@@ -170,7 +170,13 @@ function App() {
             </Card>
 
             <Card title={<><span style={{ color: '#38A169' }}>●</span> 5. Average Customer Prices in Germany (Variable Tariff)</>}>
-              <div style={{ marginBottom: '1rem', color: 'var(--text-muted)' }}>Date: {format(selectedDate, 'dd.MM.yyyy')} | Source: Simulated overhead added to Wholesale</div>
+              <div style={{ marginBottom: '1rem', color: 'var(--text-muted)' }}>
+                <p style={{ margin: '0 0 0.5rem 0' }}>Date: {format(selectedDate, 'dd.MM.yyyy')} | Source: Simulated overhead added to Wholesale</p>
+                <p style={{ fontSize: '0.875rem', margin: 0, lineHeight: 1.5, color: 'var(--text-main)', opacity: 0.9 }}>
+                  This diagram is a <strong>simulated calculation</strong>. It takes the exact raw wholesale prices from Diagram 1 and mathematically adds an estimated <strong>18.5 cents / kWh</strong> to every hour. <br />
+                  When you use a dynamic or variable electricity tariff in Germany, you pay the raw wholesale electricity price plus fixed overheads. This 18.5 ct gap represents the general average cost of grid fees, electricity tax, concession fees, levies, and provider margins. It translates the European wholesale market data into an estimated value of what an actual end consumer in Germany would likely pay for that specific day.
+                </p>
+              </div>
               {variableCustomerPrices.length > 0 ? (
                 <EnergyChart data={variableCustomerPrices} color="#38A169" />
               ) : (

@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/entsoe",
+      "destination": "https://web-api.tp.entsoe.eu/api"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

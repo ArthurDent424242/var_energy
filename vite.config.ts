@@ -12,6 +12,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/entsoe/, ''),
       },
+      '/api/preisenergie': {
+        target: 'https://portal.preisenergie.de',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/preisenergie/, ''),
+      },
     },
   },
 })

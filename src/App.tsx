@@ -3,11 +3,13 @@ import { Header } from './components/Header';
 import { Card } from './components/Card';
 import { EnergyChart, type ChartDataPoint } from './components/EnergyChart';
 import { CombinedEnergyChart } from './components/CombinedEnergyChart';
+import { PreisenergieTab } from './components/PreisenergieTab';
 import { fetchDayAheadPrices } from './services/entsoe';
 import { format, addDays, subDays } from 'date-fns';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 
 function App() {
+  const [activeTab, setActiveTab] = useState<'entsoe' | 'preisenergie'>('entsoe');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
   const [entsoeCurrent, setEntsoeCurrent] = useState<ChartDataPoint[]>([]);
@@ -90,13 +92,50 @@ function App() {
       <Header />
 
       <main className="container">
-        <div className="dashboard-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '1rem' }}>
-          <div>
-            <h1 className="dashboard-title">Energy Overview</h1>
-            <p className="dashboard-subtitle">Visualizing Day-Ahead & Current Prices</p>
-          </div>
+        <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', borderBottom: '1px solid var(--border-color, #e2e8f0)' }}>
+          <button 
+            onClick={() => setActiveTab('entsoe')}
+            style={{ 
+              padding: '0.75rem 1.5rem', 
+              backgroundColor: activeTab === 'entsoe' ? 'var(--primary)' : 'transparent', 
+              color: activeTab === 'entsoe' ? 'white' : 'var(--text-main)',
+              border: 'none',
+              borderBottom: activeTab === 'entsoe' ? '3px solid #1a365d' : '3px solid transparent',
+              cursor: 'pointer',
+              fontWeight: 600,
+              borderRadius: '8px 8px 0 0',
+              transition: 'all 0.2s'
+            }}
+          >
+            Entso e
+          </button>
+          <button 
+            onClick={() => setActiveTab('preisenergie')}
+            style={{ 
+              padding: '0.75rem 1.5rem', 
+              backgroundColor: activeTab === 'preisenergie' ? 'var(--primary)' : 'transparent', 
+              color: activeTab === 'preisenergie' ? 'white' : 'var(--text-main)',
+              border: 'none',
+              borderBottom: activeTab === 'preisenergie' ? '3px solid #1a365d' : '3px solid transparent',
+              cursor: 'pointer',
+              fontWeight: 600,
+              borderRadius: '8px 8px 0 0',
+              transition: 'all 0.2s'
+            }}
+          >
+            preisenergie.de
+          </button>
+        </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--surface)', padding: '0.25rem', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-sm)' }}>
+        {activeTab === 'entsoe' && (
+          <>
+            <div className="dashboard-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '1rem' }}>
+              <div>
+                <h1 className="dashboard-title">Energy Overview</h1>
+                <p className="dashboard-subtitle">Visualizing Day-Ahead & Current Prices</p>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--surface)', padding: '0.25rem', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-sm)' }}>
             <button onClick={handlePrevDay} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.5rem' }} title="Previous Day">
               <ChevronLeft size={20} />
             </button>
@@ -203,6 +242,12 @@ function App() {
               )}
             </Card>
           </div>
+        )}
+          </>
+        )}
+
+        {activeTab === 'preisenergie' && (
+          <PreisenergieTab />
         )}
       </main>
     </div>
